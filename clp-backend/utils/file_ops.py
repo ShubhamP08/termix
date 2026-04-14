@@ -1,34 +1,33 @@
 """
-Deterministic file-operations utilities.
+File-operations parsing helpers.
 
-Purpose:
-- Avoid relying on LLM output for filename parsing or file command generation.
-- Keep behavior simple, predictable, and cross-platform.
+This module contains ONLY deterministic parsing utilities used by the
+tool layer (tools/tool_runner.py, filesystem/file_agent.py).
+Generation and intent-detection logic has moved to the tool layer.
+
+Kept here:
+    extract_filename    - parse a filename from NL text
+    build_filename      - build a clean filename with inferred extension
+    infer_extension     - guess file extension from language cues
+    _quote_for_shell    - safely quote a path for shell use
+
+Removed (now in filesystem/file_agent.py or tools/):
+    generate_file_commands   - deprecated; file_agent.tool_create_file() used instead
+    is_create_file_intent    - deprecated; fs_create_file KB rule handles this
 """
 
 from __future__ import annotations
 
 import re
-from typing import List, Optional
-
-from utils.os_detector import detect_os
+from typing import Optional
 
 
 _QUOTED_NAME_RE = re.compile(r"""["']([^"']+)["']""")
-
-# Matches simple filenames that may include an extension (and preserves dots).
-# Examples: test.js, hello.py, archive.tar.gz
-_FILENAME_WITH_DOTS_RE = re.compile(r"\b([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+)\b")
-
-# Matches a bare name (no extension) after common cues like "named" / "called".
-_NAMED_RE = re.compile(r"\b(?:named|called)\s+([A-Za-z0-9_.-]+)\b", re.IGNORECASE)
-
-# Matches a bare name after phrases like:
-# - "create file X"
-# - "create python file X"
-# - "make a javascript file named X"
-# Keep it permissive but deterministic (non-greedy until the word 'file').
-_AFTER_FILE_RE = re.compile(r"\b(?:create|make)\b.*?\bfile\b\s+([A-Za-z0-9_.-]+)\b", re.IGNORECASE)
+_FILENAME_WITH_DOTS_RE = re.compile(r"""\b([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+)\b""")
+_NAMED_RE = re.compile(r"""\b(?:named|called)\s+([A-Za-z0-9_.-]+)\b""", re.IGNORECASE)
+_AFTER_FILE_RE = re.compile(
+    r"""\b(?:create|make)\b.*?\bfile\b\s+([A-Za-z0-9_.-]+)\b""", re.IGNORECASE
+)
 
 
 def infer_extension(user_input: str) -> str:
@@ -36,10 +35,10 @@ def infer_extension(user_input: str) -> str:
     Infer a file extension from the user's request.
 
     Mapping:
-    - javascript -> .js
-    - python -> .py
-    - text -> .txt
-    - default -> ""
+    - javascript → .js
+    - python     → .py
+    - text       → .txt
+    - default    → ""
     """
     text = (user_input or "").lower()
     if "javascript" in text or re.search(r"\bjs\b", text):
@@ -55,33 +54,30 @@ def extract_filename(user_input: str) -> str:
     """
     Extract a filename from a natural-language instruction.
 
-    Key properties:
-    - Preserves dots (critical for extensions).
-    - Handles quoted names: "test.js"
-    - Handles: "named test", "called test.js", "create file hello"
+    Priority:
+    1. Quoted strings: "test.js"
+    2. Filename with extension: test.js
+    3. "named X" / "called X"
+    4. "create file X"
     """
     text = (user_input or "").strip()
     if not text:
         return ""
 
-    # 1) Prefer quoted filenames.
     quoted = _QUOTED_NAME_RE.findall(text)
     for q in quoted:
         q = q.strip()
         if q and not q.isspace():
             return q
 
-    # 2) Prefer explicit filenames that already contain a dot (test.js).
     m = _FILENAME_WITH_DOTS_RE.search(text)
     if m:
         return m.group(1)
 
-    # 3) "named X" / "called X"
     m = _NAMED_RE.search(text)
     if m:
         return m.group(1)
 
-    # 4) "create file X"
     m = _AFTER_FILE_RE.search(text)
     if m:
         return m.group(1)
@@ -94,71 +90,20 @@ def build_filename(user_input: str) -> str:
     Build a deterministic filename from user input.
 
     Rules:
-    - If filename already has an extension -> keep it
+    - If filename already has an extension → keep it
     - Else append inferred extension
-    - Default filename -> "file"
+    - Default filename → "file"
     """
     raw = extract_filename(user_input).strip()
     if not raw:
         raw = "file"
-
-    # If it already has a dot in the tail, assume it has an extension.
     if "." in raw.strip("."):
         return raw
-
     ext = infer_extension(user_input)
     return f"{raw}{ext}" if ext else raw
 
 
 def _quote_for_shell(path: str) -> str:
-    """
-    Quote a filename for safe shell usage.
-
-    We keep it simple: use double-quotes and escape embedded quotes.
-    This works for cmd.exe and POSIX shells for typical filenames.
-    """
+    """Quote a path for safe shell usage (double-quotes, escaped internals)."""
     escaped = path.replace('"', '\\"')
     return f'"{escaped}"'
-
-
-def generate_file_commands(filename: str) -> List[str]:
-    """
-    Generate deterministic file-creation commands (no LLM).
-
-    Returns:
-    - touch <filename>
-    - echo "" > <filename>
-
-    Cross-platform notes:
-    - On Windows (cmd.exe), `touch` is typically unavailable, so we use `type nul > file`.
-    - On POSIX (Linux/macOS), `touch` is standard.
-    """
-    name = (filename or "").strip()
-    if not name:
-        name = "file"
-
-    q = _quote_for_shell(name)
-    os_key = detect_os()
-
-    if os_key == "windows":
-        # Create/overwrite file with empty content.
-        return [
-            f"type nul > {q}",
-            f"echo.> {q}",
-        ]
-
-    return [
-        f"touch {q}",
-        f'echo "" > {q}',
-    ]
-
-
-def is_create_file_intent(user_input: str) -> bool:
-    """
-    Deterministic intent detection for create-file requests.
-
-    This avoids asking the LLM to parse filenames.
-    """
-    text = (user_input or "").lower()
-    return bool(re.search(r"\b(create|make)\b", text) and re.search(r"\bfile\b", text))
-

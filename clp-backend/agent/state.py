@@ -1,7 +1,7 @@
 """
 Typed AgentState passed through the LangGraph StateGraph.
 
-Placeholder only — field set may evolve as nodes are implemented.
+Kept minimal — only fields that nodes actually read or write.
 """
 
 from __future__ import annotations
@@ -11,55 +11,36 @@ from typing import Any, Dict, List, Literal, Optional, TypedDict
 
 IntentType = Literal[
     "file_op",
-    "network",
-    "process",
-    "git",
+    "general",
     "unknown",
 ]
 
 
-class RetrievalCandidate(TypedDict, total=False):
-    source: Literal["json_kb", "vector", "llm"]
-    intent: IntentType
-    command: str
-    explanation: str
-    score: float
-    metadata: Dict[str, Any]
-
-
 class AgentState(TypedDict, total=False):
-    # Core fields (requested)
+    # ── Input ──────────────────────────────────────────────────────────
     user_input: str
     normalized_input: str
     tasks: List[str]
+
+    # ── Retrieval output ───────────────────────────────────────────────
     commands: List[str]
-    source: str
+    source: str                 # "kb_fuzzy" | "kb_semantic" | "llm" | "none"
+    score: float                # 0.0–1.0 normalised confidence
     intent: IntentType
+    requires_confirmation: bool
+    rule_id: Optional[str]      # KB rule ID for traceability
+
+    # ── Tool execution layer ───────────────────────────────────────────
+    tool_name: str              # e.g. "create_file", "open_app"
+    tool_output: str            # stdout from Python-native tool execution
+    missing_placeholders: List[str]  # slot names the user must still provide
+    pending_tool: Dict[str, Any]     # deferred Python tool execution payload
+
+    # ── Validation / execution ─────────────────────────────────────────
     validated: bool
     approved: bool
     execution_result: Dict[str, Any]
     error: str
 
-    # Backward-compatible / extended fields (kept for future graph wiring)
-    user_query: str
-    normalized_query: str
-
-    # Retrieval fan-out results
-    kb_candidates: List[RetrievalCandidate]
-    vector_candidates: List[RetrievalCandidate]
-    llm_candidates: List[RetrievalCandidate]
-
-    # Confidence routing
-    best_candidate: RetrievalCandidate
-    confidence: float
-    needs_clarification: bool
-    clarification_question: str
-
-    # Safety + execution
-    proposed_command: str
-    dry_run_preview: str
-    blocked_reason: str
-
-    # History / trace for multi-turn context
+    # ── History / trace for multi-turn context ─────────────────────────
     history: List[Dict[str, Any]]
-

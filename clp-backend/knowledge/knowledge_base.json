@@ -1,1252 +1,827 @@
 {
-  "version": "2.0.0",
-  "description": "Cross-platform knowledge base for AI terminal agent. Each rule contains OS-specific commands for Linux, macOS, and Windows.",
-  "supported_os": [
-    "linux",
-    "macos",
-    "windows"
-  ],
+  "version": "1.1.0",
+  "description": "Deterministic-first knowledge base for a local NL-to-command terminal assistant. Maps natural language intents to safe, predictable shell commands across Linux, macOS, and Windows. App launching uses placeholder-based generic rules (open_app, open_app_in_current_dir) combined with a deterministic allowlist in application code — <app_name> must be validated against a permitted-apps list before execution. Only OS-native system apps (terminal, file manager, calculator) use direct hardcoded commands due to unreliable generic launching.",
   "rules": [
     {
-      "intent": "find biggest file",
-      "description": "Find and display the largest file in the current directory",
-      "examples": [
-        "biggest file",
-        "biggest file in this folder",
-        "find largest file",
-        "show largest file",
-        "which file is biggest"
-      ],
-      "commands": {
-        "linux": "ls -lhS | head -2",
-        "macos": "ls -lhS | head -2",
-        "windows": "dir | sort /r"
-      },
-      "id": "rule_biggest_file"
-    },
-    {
-      "intent": "list files",
-      "description": "List files in the current directory",
+      "id": "fs_list_files",
+      "intent": "list files in current directory",
       "examples": [
         "list files",
         "show files",
-        "what files are here",
-        "show directory contents"
+        "what's in this folder",
+        "ls",
+        "show directory contents",
+        "list all files here"
       ],
-      "commands": {
-        "linux": "ls",
-        "macos": "ls",
-        "windows": "dir"
-      },
-      "id": "rule_0000"
-    },
-    {
-      "intent": "list all files including hidden",
-      "description": "List all files including hidden files with details",
-      "examples": [
-        "show hidden files",
-        "list all files",
-        "ls -la",
-        "show everything"
-      ],
+      "description": "List files and folders in the current directory.",
       "commands": {
         "linux": "ls -la",
         "macos": "ls -la",
-        "windows": "dir /a"
-      },
-      "id": "rule_0001"
-    },
-    {
-      "intent": "list files with size",
-      "description": "List files with human-readable sizes",
-      "examples": [
-        "show file sizes",
-        "list files with size",
-        "ls -lh"
-      ],
-      "commands": {
-        "linux": "ls -lh",
-        "macos": "ls -lh",
         "windows": "dir"
       },
-      "id": "rule_0002"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "filesystem",
+        "list",
+        "directory"
+      ]
     },
     {
-      "intent": "biggest file",
-      "description": "Find and display the largest/biggest file in the current directory",
+      "id": "fs_current_directory",
+      "intent": "show current working directory",
       "examples": [
-        "biggest file",
-        "biggest file in this folder",
-        "find biggest file",
-        "find largest file",
-        "show largest file",
-        "which file is biggest",
-        "largest files first",
-        "sort files by size"
-      ],
-      "commands": {
-        "linux": "ls -lhS | head -2",
-        "macos": "ls -lhS | head -2",
-        "windows": "dir /o-s"
-      },
-      "id": "rule_0003"
-    },
-    {
-      "intent": "list files sorted by date",
-      "description": "List files sorted by modification time, newest first",
-      "examples": [
-        "newest files first",
-        "sort files by date",
-        "recent files"
-      ],
-      "commands": {
-        "linux": "ls -lt",
-        "macos": "ls -lt",
-        "windows": "dir /o-d"
-      },
-      "id": "rule_0004"
-    },
-    {
-      "intent": "list files recursively",
-      "description": "List all files including inside subdirectories",
-      "examples": [
-        "list all files recursive",
-        "show all subdirectory files"
-      ],
-      "commands": {
-        "linux": "ls -R",
-        "macos": "ls -R",
-        "windows": "dir /s"
-      },
-      "id": "rule_0005"
-    },
-    {
-      "intent": "list only directories",
-      "description": "List only folders in the current directory",
-      "examples": [
-        "show only folders",
-        "list directories only"
-      ],
-      "commands": {
-        "linux": "ls -d */",
-        "macos": "ls -d */",
-        "windows": "dir /ad"
-      },
-      "id": "rule_0006"
-    },
-    {
-      "intent": "print current directory",
-      "description": "Show the full path of where you currently are",
-      "examples": [
-        "where am i",
-        "current path",
+        "where am I",
         "show current directory",
-        "pwd"
+        "what is my current path",
+        "print working directory",
+        "pwd",
+        "current folder"
       ],
+      "description": "Print the current working directory path.",
       "commands": {
         "linux": "pwd",
         "macos": "pwd",
         "windows": "cd"
       },
-      "id": "rule_0007"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "filesystem",
+        "directory",
+        "path"
+      ]
     },
     {
-      "intent": "go to home directory",
-      "description": "Navigate to the user home directory",
+      "id": "fs_create_file",
+      "intent": "create a new empty file",
       "examples": [
-        "go home",
-        "navigate to home",
-        "home directory"
+        "create a file called notes.txt",
+        "make a new file called report.md",
+        "touch <filename>",
+        "create empty file <filename>",
+        "new file <filename>"
       ],
+      "description": "Create a new empty file with the given name.",
       "commands": {
-        "linux": "cd ~",
-        "macos": "cd ~",
-        "windows": "cd %USERPROFILE%"
+        "linux": "touch <filename>",
+        "macos": "touch <filename>",
+        "windows": "type nul > <filename>"
       },
-      "id": "rule_0008"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "filesystem",
+        "create",
+        "file"
+      ]
     },
     {
-      "intent": "go up one directory",
-      "description": "Go up one level in the folder tree",
+      "id": "fs_create_folder",
+      "intent": "create a new directory",
       "examples": [
-        "go back",
-        "go up",
-        "parent directory",
-        "one level up"
+        "create a folder called projects",
+        "make a directory called src",
+        "mkdir <folder>",
+        "new folder <folder>",
+        "create directory <folder>"
       ],
+      "description": "Create a new directory with the given name.",
       "commands": {
-        "linux": "cd ..",
-        "macos": "cd ..",
-        "windows": "cd .."
+        "linux": "mkdir -p <folder>",
+        "macos": "mkdir -p <folder>",
+        "windows": "mkdir <folder>"
       },
-      "id": "rule_0009"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "filesystem",
+        "create",
+        "directory"
+      ]
     },
     {
-      "intent": "go up two directories",
-      "description": "Go up two levels in the folder tree",
+      "id": "fs_remove_file",
+      "intent": "delete a file",
       "examples": [
-        "go up two levels",
-        "two directories back"
+        "delete file <filename>",
+        "remove file <filename>",
+        "delete old_notes.txt",
+        "get rid of <filename>",
+        "rm <filename>"
       ],
+      "description": "Permanently delete a file.",
       "commands": {
-        "linux": "cd ../..",
-        "macos": "cd ../..",
-        "windows": "cd ..\\.."
+        "linux": "rm <filename>",
+        "macos": "rm <filename>",
+        "windows": "del <filename>"
       },
-      "id": "rule_0010"
+      "risk_level": "high",
+      "requires_confirmation": true,
+      "tags": [
+        "filesystem",
+        "delete",
+        "file",
+        "destructive"
+      ]
     },
     {
-      "intent": "go to previous directory",
-      "description": "Switch back to the last visited directory",
+      "id": "fs_remove_folder",
+      "intent": "delete a directory and its contents",
       "examples": [
-        "go back to previous folder",
-        "last directory",
-        "switch back"
+        "delete folder <folder>",
+        "remove directory <folder>",
+        "delete the build folder",
+        "remove folder <folder>",
+        "rmdir <folder>"
       ],
+      "description": "Recursively delete a directory and all its contents.",
       "commands": {
-        "linux": "cd -",
-        "macos": "cd -",
-        "windows": "cd -"
+        "linux": "rm -rf ./<folder>",
+        "macos": "rm -rf ./<folder>",
+        "windows": "rmdir /s /q ./<folder>"
       },
-      "id": "rule_0011"
+      "risk_level": "high",
+      "requires_confirmation": true,
+      "tags": [
+        "filesystem",
+        "delete",
+        "directory",
+        "destructive"
+      ]
     },
     {
-      "intent": "create empty file",
-      "description": "Create a new empty file",
+      "id": "fs_copy_file",
+      "intent": "copy a file to another location",
       "examples": [
-        "make new file",
-        "create file",
-        "new empty file",
-        "touch file"
+        "copy report.pdf to backups/",
+        "duplicate config.json to config.backup.json",
+        "cp <source> <destination>",
+        "copy file <source> to <destination>",
+        "make a copy of <source> at <destination>"
       ],
+      "description": "Copy a file from source to destination path.",
       "commands": {
-        "linux": "touch filename.txt",
-        "macos": "touch filename.txt",
-        "windows": "type nul > filename.txt"
+        "linux": "cp <source> <destination>",
+        "macos": "cp <source> <destination>",
+        "windows": "copy <source> <destination>"
       },
-      "id": "rule_0012"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "filesystem",
+        "copy",
+        "file"
+      ]
     },
     {
-      "intent": "create file with content",
-      "description": "Create a file and write text into it",
+      "id": "fs_move_file",
+      "intent": "move or rename a file",
       "examples": [
-        "create file with text",
-        "write text to file",
-        "echo to file"
+        "move report.txt to archive/",
+        "rename old_name.py to new_name.py",
+        "mv <source> <destination>",
+        "move file <source> to <destination>",
+        "relocate <source> to <destination>"
       ],
+      "description": "Move or rename a file from source to destination path.",
       "commands": {
-        "linux": "echo 'your text here' > filename.txt",
-        "macos": "echo 'your text here' > filename.txt",
-        "windows": "echo your text here > filename.txt"
+        "linux": "mv <source> <destination>",
+        "macos": "mv <source> <destination>",
+        "windows": "move <source> <destination>"
       },
-      "id": "rule_0013"
+      "risk_level": "medium",
+      "requires_confirmation": false,
+      "tags": [
+        "filesystem",
+        "move",
+        "rename",
+        "file"
+      ]
     },
     {
-      "intent": "append text to file",
-      "description": "Add text to the end of an existing file",
+      "id": "fs_show_file_contents",
+      "intent": "display the contents of a file",
       "examples": [
-        "add text to file",
-        "append to file",
-        "write more to file"
+        "show contents of <filename>",
+        "read file <filename>",
+        "print file config.yaml",
+        "cat <filename>",
+        "view README.md"
       ],
+      "description": "Print the contents of a file to the terminal.",
       "commands": {
-        "linux": "echo 'your text' >> filename.txt",
-        "macos": "echo 'your text' >> filename.txt",
-        "windows": "echo your text >> filename.txt"
+        "linux": "cat <filename>",
+        "macos": "cat <filename>",
+        "windows": "type <filename>"
       },
-      "id": "rule_0014"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "filesystem",
+        "read",
+        "file",
+        "view"
+      ]
     },
     {
-      "intent": "create directory",
-      "description": "Create a new folder",
+      "id": "fs_search_text_in_files",
+      "intent": "search for text inside files",
       "examples": [
-        "make folder",
-        "create folder",
-        "new directory",
-        "mkdir"
+        "search for TODO in all files",
+        "grep <pattern> in this directory",
+        "find the text <pattern> in files",
+        "look for <pattern> across all files",
+        "search text <pattern> recursively"
       ],
+      "description": "Recursively search for a text pattern inside files in the current directory.",
       "commands": {
-        "linux": "mkdir folder_name",
-        "macos": "mkdir folder_name",
-        "windows": "mkdir folder_name"
+        "linux": "grep -r <pattern> .",
+        "macos": "grep -r <pattern> .",
+        "windows": "findstr /s /r <pattern> *"
       },
-      "id": "rule_0015"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "filesystem",
+        "search",
+        "grep",
+        "text"
+      ]
     },
     {
-      "intent": "create nested directories",
-      "description": "Create a chain of nested folders at once",
+      "id": "fs_find_file_by_name",
+      "intent": "find files by name",
       "examples": [
-        "create nested folders",
-        "mkdir -p",
-        "make folder structure",
-        "create subdirectories"
+        "find file named <filename>",
+        "locate <filename>",
+        "where is config.json",
+        "search for file <filename>",
+        "find <filename> in current directory"
       ],
+      "description": "Find files matching a name pattern under the current directory.",
       "commands": {
-        "linux": "mkdir -p parent/child/grandchild",
-        "macos": "mkdir -p parent/child/grandchild",
-        "windows": "mkdir parent\\child\\grandchild"
+        "linux": "find . -name <filename>",
+        "macos": "find . -name <filename>",
+        "windows": "dir /s /b <filename>"
       },
-      "id": "rule_0016"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "filesystem",
+        "find",
+        "search",
+        "file"
+      ]
     },
     {
-      "intent": "create multiple directories",
-      "description": "Create several folders at the same time",
+      "id": "git_status",
+      "intent": "show git repository status",
       "examples": [
-        "make multiple folders",
-        "create several directories"
+        "git status",
+        "show git status",
+        "what files have changed",
+        "what's modified in git",
+        "check repo status",
+        "show uncommitted changes"
       ],
+      "description": "Show the working tree status of the current git repository.",
       "commands": {
-        "linux": "mkdir dir1 dir2 dir3",
-        "macos": "mkdir dir1 dir2 dir3",
-        "windows": "mkdir dir1 & mkdir dir2 & mkdir dir3"
+        "linux": "git status",
+        "macos": "git status",
+        "windows": "git status"
       },
-      "id": "rule_0017"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "git",
+        "status",
+        "vcs"
+      ]
     },
     {
-      "intent": "copy file",
-      "description": "Copy a file to a new location or name",
+      "id": "git_add_all",
+      "intent": "stage all changes for commit",
       "examples": [
-        "copy file",
-        "duplicate file",
-        "cp file",
-        "clone file"
+        "git add all",
+        "stage all changes",
+        "add everything to git",
+        "git add .",
+        "stage all files",
+        "add all modified files"
       ],
+      "description": "Stage all changed and untracked files for the next commit.",
       "commands": {
-        "linux": "cp source.txt destination.txt",
-        "macos": "cp source.txt destination.txt",
-        "windows": "copy source.txt destination.txt"
+        "linux": "git add .",
+        "macos": "git add .",
+        "windows": "git add ."
       },
-      "id": "rule_0018"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "git",
+        "add",
+        "stage",
+        "vcs"
+      ]
     },
     {
-      "intent": "copy file to directory",
-      "description": "Copy a file into a specific folder",
+      "id": "git_commit",
+      "intent": "commit staged changes with a message",
       "examples": [
-        "copy file to folder",
-        "cp to directory"
+        "git commit with message <message>",
+        "commit changes saying 'fix login bug'",
+        "save commit <message>",
+        "make a commit with the message <message>",
+        "commit staged files with <message>"
       ],
+      "description": "Commit staged changes with the provided commit message.",
       "commands": {
-        "linux": "cp file.txt /path/to/destination/",
-        "macos": "cp file.txt /path/to/destination/",
-        "windows": "copy file.txt C:\\path\\to\\destination\\"
+        "linux": "git commit -m \"<message>\"",
+        "macos": "git commit -m \"<message>\"",
+        "windows": "git commit -m \"<message>\""
       },
-      "id": "rule_0019"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "git",
+        "commit",
+        "vcs"
+      ]
     },
     {
-      "intent": "copy directory",
-      "description": "Copy an entire folder and its contents",
+      "id": "git_branch_list",
+      "intent": "list all git branches",
       "examples": [
-        "copy folder",
-        "duplicate directory",
-        "cp -r",
-        "copy folder recursively"
+        "list branches",
+        "show all branches",
+        "what branches exist",
+        "git branch list",
+        "show git branches",
+        "which branches do I have"
       ],
+      "description": "List all local git branches.",
       "commands": {
-        "linux": "cp -r source_folder/ destination_folder/",
-        "macos": "cp -r source_folder/ destination_folder/",
-        "windows": "xcopy source_folder destination_folder /e /i"
+        "linux": "git branch",
+        "macos": "git branch",
+        "windows": "git branch"
       },
-      "id": "rule_0020"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "git",
+        "branch",
+        "vcs"
+      ]
     },
     {
-      "intent": "copy multiple files to directory",
-      "description": "Copy multiple files into a folder",
+      "id": "git_checkout_branch",
+      "intent": "switch to a git branch",
       "examples": [
-        "copy many files",
-        "cp multiple files",
-        "copy several files"
+        "checkout branch <branch>",
+        "switch to branch main",
+        "git checkout <branch>",
+        "change branch to <branch>",
+        "go to branch <branch>"
       ],
+      "description": "Switch the working tree to the specified branch.",
       "commands": {
-        "linux": "cp file1.txt file2.txt /destination/",
-        "macos": "cp file1.txt file2.txt /destination/",
-        "windows": "copy file1.txt file2.txt C:\\destination\\"
+        "linux": "git checkout <branch>",
+        "macos": "git checkout <branch>",
+        "windows": "git checkout <branch>"
       },
-      "id": "rule_0021"
+      "risk_level": "medium",
+      "requires_confirmation": false,
+      "tags": [
+        "git",
+        "checkout",
+        "branch",
+        "vcs"
+      ]
     },
     {
-      "intent": "move file",
-      "description": "Move a file to a different directory",
+      "id": "git_pull",
+      "intent": "pull latest changes from remote",
       "examples": [
-        "move file",
-        "relocate file",
-        "mv file",
-        "send file to folder"
+        "git pull",
+        "pull latest changes",
+        "update from remote",
+        "sync with remote",
+        "fetch and merge remote changes",
+        "pull from origin"
       ],
+      "description": "Fetch and merge changes from the remote tracking branch.",
       "commands": {
-        "linux": "mv file.txt /path/to/destination/",
-        "macos": "mv file.txt /path/to/destination/",
-        "windows": "move file.txt C:\\path\\to\\destination\\"
+        "linux": "git pull",
+        "macos": "git pull",
+        "windows": "git pull"
       },
-      "id": "rule_0022"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "git",
+        "pull",
+        "remote",
+        "vcs"
+      ]
     },
     {
-      "intent": "rename file",
-      "description": "Rename a file",
+      "id": "git_push",
+      "intent": "push commits to remote repository",
       "examples": [
-        "rename file",
-        "change file name",
-        "rename"
+        "git push",
+        "push changes",
+        "upload commits to remote",
+        "push to origin",
+        "send commits to remote",
+        "publish changes"
       ],
+      "description": "Push committed changes to the remote repository.",
       "commands": {
-        "linux": "mv old_name.txt new_name.txt",
-        "macos": "mv old_name.txt new_name.txt",
-        "windows": "ren old_name.txt new_name.txt"
+        "linux": "git push",
+        "macos": "git push",
+        "windows": "git push"
       },
-      "id": "rule_0023"
+      "risk_level": "medium",
+      "requires_confirmation": false,
+      "tags": [
+        "git",
+        "push",
+        "remote",
+        "vcs"
+      ]
     },
     {
-      "intent": "rename directory",
-      "description": "Rename a folder",
+      "id": "npm_install",
+      "intent": "install npm dependencies",
       "examples": [
-        "rename folder",
-        "change folder name",
-        "rename directory"
+        "npm install",
+        "install dependencies",
+        "install node modules",
+        "run npm install",
+        "install packages",
+        "install project dependencies"
       ],
+      "description": "Install all npm dependencies listed in package.json.",
       "commands": {
-        "linux": "mv old_folder new_folder",
-        "macos": "mv old_folder new_folder",
-        "windows": "ren old_folder new_folder"
+        "linux": "npm install",
+        "macos": "npm install",
+        "windows": "npm install"
       },
-      "id": "rule_0024"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "npm",
+        "node",
+        "install",
+        "dependencies"
+      ]
     },
     {
-      "intent": "move directory",
-      "description": "Move an entire folder to a new location",
+      "id": "npm_run_dev",
+      "intent": "start the npm development server",
       "examples": [
-        "move folder",
-        "relocate directory",
-        "mv folder"
+        "npm run dev",
+        "start dev server",
+        "run development server",
+        "start the app in dev mode",
+        "launch dev server",
+        "run dev"
       ],
+      "description": "Start the development server using the npm dev script.",
       "commands": {
-        "linux": "mv source_folder/ /path/to/destination/",
-        "macos": "mv source_folder/ /path/to/destination/",
-        "windows": "move source_folder C:\\path\\to\\destination\\"
+        "linux": "npm run dev",
+        "macos": "npm run dev",
+        "windows": "npm run dev"
       },
-      "id": "rule_0025"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "npm",
+        "node",
+        "dev",
+        "server"
+      ]
     },
     {
-      "intent": "delete file",
-      "description": "Delete a single file",
+      "id": "npm_run_build",
+      "intent": "build the project using npm",
       "examples": [
-        "remove file",
-        "delete file",
-        "erase file",
-        "rm file"
+        "npm run build",
+        "build the project",
+        "create production build",
+        "run build script",
+        "build for production",
+        "compile the project"
       ],
+      "description": "Run the npm build script to produce a production build.",
       "commands": {
-        "linux": "rm filename.txt",
-        "macos": "rm filename.txt",
-        "windows": "del filename.txt"
+        "linux": "npm run build",
+        "macos": "npm run build",
+        "windows": "npm run build"
       },
-      "id": "rule_0026"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "npm",
+        "node",
+        "build",
+        "production"
+      ]
     },
     {
-      "intent": "delete multiple files",
-      "description": "Delete multiple files at once",
+      "id": "python_create_venv",
+      "intent": "create a Python virtual environment",
       "examples": [
-        "delete multiple files",
-        "remove several files"
+        "create virtual environment",
+        "make a venv",
+        "set up python venv",
+        "create python virtual environment",
+        "initialize venv",
+        "create venv"
       ],
+      "description": "Create a new Python virtual environment in a folder named venv.",
       "commands": {
-        "linux": "rm file1.txt file2.txt",
-        "macos": "rm file1.txt file2.txt",
-        "windows": "del file1.txt file2.txt"
+        "linux": "python3 -m venv venv",
+        "macos": "python3 -m venv venv",
+        "windows": "python -m venv venv"
       },
-      "id": "rule_0027"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "python",
+        "venv",
+        "environment"
+      ]
     },
     {
-      "intent": "delete all files with extension",
-      "description": "Delete all files matching a pattern like all .log files",
+      "id": "python_activate_venv",
+      "intent": "activate the Python virtual environment",
       "examples": [
-        "delete all log files",
-        "remove files by extension",
-        "delete all txt files"
+        "activate virtual environment",
+        "activate venv",
+        "start the venv",
+        "enable virtual environment",
+        "source venv"
       ],
+      "description": "Activate the Python virtual environment in the current directory.",
       "commands": {
-        "linux": "rm *.log",
-        "macos": "rm *.log",
-        "windows": "del *.log"
+        "linux": "source venv/bin/activate",
+        "macos": "source venv/bin/activate",
+        "windows": "venv\\Scripts\\activate"
       },
-      "id": "rule_0028"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "python",
+        "venv",
+        "activate",
+        "environment"
+      ]
     },
     {
-      "intent": "delete empty directory",
-      "description": "Remove a folder that is empty",
+      "id": "python_pip_install",
+      "intent": "install a Python package with pip",
       "examples": [
-        "remove empty folder",
-        "delete empty directory",
-        "rmdir"
+        "pip install <package>",
+        "install python package requests",
+        "install <package> with pip",
+        "add python dependency <package>",
+        "install numpy using pip"
       ],
+      "description": "Install a Python package using pip.",
       "commands": {
-        "linux": "rmdir folder_name",
-        "macos": "rmdir folder_name",
-        "windows": "rmdir folder_name"
+        "linux": "pip install <package>",
+        "macos": "pip install <package>",
+        "windows": "pip install <package>"
       },
-      "id": "rule_0029"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "python",
+        "pip",
+        "install",
+        "package"
+      ]
     },
     {
-      "intent": "delete directory with contents",
-      "description": "Force delete a folder and everything inside it",
+      "id": "python_run_file",
+      "intent": "run a Python script",
       "examples": [
-        "delete folder",
-        "remove directory",
-        "force delete folder",
-        "delete folder recursively"
+        "run python file <script>",
+        "execute python script main.py",
+        "run <script> with python",
+        "python <script>",
+        "run script <script>"
       ],
+      "description": "Execute a Python script file.",
       "commands": {
-        "linux": "rm -rf folder_name/",
-        "macos": "rm -rf folder_name/",
-        "windows": "rmdir /s /q folder_name"
+        "linux": "python3 <script>",
+        "macos": "python3 <script>",
+        "windows": "python <script>"
       },
-      "id": "rule_0030"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "python",
+        "run",
+        "script",
+        "execute"
+      ]
     },
     {
-      "intent": "view file contents",
-      "description": "Display the full contents of a file",
+      "id": "sys_show_processes",
+      "intent": "show running processes",
       "examples": [
-        "show file contents",
-        "read file",
-        "cat file",
-        "print file",
-        "view file"
+        "show running processes",
+        "list all processes",
+        "what processes are running",
+        "ps aux",
+        "show active processes",
+        "view process list"
       ],
+      "description": "Display a list of currently running system processes.",
       "commands": {
-        "linux": "cat filename.txt",
-        "macos": "cat filename.txt",
-        "windows": "type filename.txt"
+        "linux": "ps aux",
+        "macos": "ps aux",
+        "windows": "tasklist"
       },
-      "id": "rule_0031"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "system",
+        "processes",
+        "monitor"
+      ]
     },
     {
-      "intent": "view file with line numbers",
-      "description": "Display file contents with line numbers",
+      "id": "sys_kill_process",
+      "intent": "kill a process by its PID",
       "examples": [
-        "show file with line numbers",
-        "cat -n",
-        "view file numbered"
+        "kill process <pid>",
+        "terminate process 1234",
+        "stop process with pid <pid>",
+        "kill pid <pid>",
+        "end process <pid>"
       ],
+      "description": "Terminate a running process by its process ID.",
       "commands": {
-        "linux": "cat -n filename.txt",
-        "macos": "cat -n filename.txt",
-        "windows": "findstr /n . filename.txt"
+        "linux": "kill <pid>",
+        "macos": "kill <pid>",
+        "windows": "taskkill /PID <pid> /F"
       },
-      "id": "rule_0032"
+      "risk_level": "high",
+      "requires_confirmation": true,
+      "tags": [
+        "system",
+        "kill",
+        "process",
+        "pid"
+      ]
     },
     {
-      "intent": "view first lines of file",
-      "description": "Show the first 10 lines of a file",
+      "id": "sys_ping_host",
+      "intent": "ping a host to check connectivity",
       "examples": [
-        "show top of file",
-        "head file",
-        "first 10 lines",
-        "beginning of file"
+        "ping <host>",
+        "check if google.com is reachable",
+        "test connection to <host>",
+        "ping host <host>",
+        "is <host> online"
       ],
+      "description": "Send ICMP echo requests to a host to test network connectivity.",
       "commands": {
-        "linux": "head filename.txt",
-        "macos": "head filename.txt",
-        "windows": "more +1 filename.txt | findstr /n . | findstr ^[1-9]:"
+        "linux": "ping -c 4 <host>",
+        "macos": "ping -c 4 <host>",
+        "windows": "ping <host>"
       },
-      "id": "rule_0033"
+      "risk_level": "low",
+      "requires_confirmation": false,
+      "tags": [
+        "system",
+        "network",
+        "ping",
+        "connectivity"
+      ]
     },
     {
-      "intent": "view first n lines of file",
-      "description": "Show the first N lines of a file",
+      "id": "open_app",
+      "intent": "open an application by name",
       "examples": [
-        "first 20 lines",
-        "head -n",
-        "top n lines of file"
+        "open vscode",
+        "launch chrome",
+        "start calculator",
+        "open the app <app_name>"
       ],
+      "description": "Launch a named application. <app_name> must be validated against a permitted-apps allowlist in application code before this command is executed.",
       "commands": {
-        "linux": "head -n 20 filename.txt",
-        "macos": "head -n 20 filename.txt",
-        "windows": "powershell Get-Content filename.txt -TotalCount 20"
+        "linux": "<app_name>",
+        "macos": "open -a \"<app_name>\"",
+        "windows": "start \"\" \"<app_name>\""
       },
-      "id": "rule_0034"
+      "risk_level": "medium",
+      "requires_confirmation": true,
+      "tags": [
+        "app",
+        "launch",
+        "placeholder"
+      ]
     },
     {
-      "intent": "view last lines of file",
-      "description": "Show the last 10 lines of a file",
+      "id": "open_app_in_current_dir",
+      "intent": "open an application targeting the current directory",
       "examples": [
-        "show end of file",
-        "tail file",
-        "last 10 lines",
-        "bottom of file"
+        "open <app_name> here",
+        "launch <app_name> in this folder",
+        "open <app_name> in the current directory"
       ],
+      "description": "Launch a named application with the current directory as its target. <app_name> must be validated against a permitted-apps allowlist in application code before this command is executed.",
       "commands": {
-        "linux": "tail filename.txt",
-        "macos": "tail filename.txt",
-        "windows": "powershell Get-Content filename.txt -Tail 10"
+        "linux": "<app_name> .",
+        "macos": "open -a \"<app_name>\" .",
+        "windows": "start \"\" \"<app_name>\" ."
       },
-      "id": "rule_0035"
+      "risk_level": "medium",
+      "requires_confirmation": true,
+      "tags": [
+        "app",
+        "launch",
+        "placeholder",
+        "directory"
+      ]
     },
     {
-      "intent": "view last n lines of file",
-      "description": "Show the last N lines of a file",
+      "id": "app_open_terminal",
+      "intent": "open a new terminal window",
       "examples": [
-        "last 20 lines",
-        "tail -n",
-        "bottom n lines"
+        "open terminal",
+        "launch terminal",
+        "start a new terminal",
+        "open command line",
+        "new terminal window"
       ],
+      "description": "Open the default OS terminal application. Uses OS-native commands due to unreliable generic launching.",
       "commands": {
-        "linux": "tail -n 20 filename.txt",
-        "macos": "tail -n 20 filename.txt",
-        "windows": "powershell Get-Content filename.txt -Tail 20"
+        "linux": "x-terminal-emulator",
+        "macos": "open -a Terminal",
+        "windows": "start cmd"
       },
-      "id": "rule_0036"
+      "risk_level": "medium",
+      "requires_confirmation": true,
+      "tags": [
+        "app",
+        "terminal",
+        "launch"
+      ]
     },
     {
-      "intent": "follow file output live",
-      "description": "Watch a file for live updates, useful for monitoring logs",
+      "id": "app_open_file_manager",
+      "intent": "open the file manager or Finder",
       "examples": [
-        "watch log file",
-        "live file output",
-        "monitor log",
-        "follow file"
-      ],
-      "commands": {
-        "linux": "tail -f filename.log",
-        "macos": "tail -f filename.log",
-        "windows": "powershell Get-Content filename.log -Wait"
-      },
-      "id": "rule_0037"
-    },
-    {
-      "intent": "scroll through file",
-      "description": "View file contents page by page",
-      "examples": [
-        "page through file",
-        "scroll file",
-        "read large file",
-        "less file"
-      ],
-      "commands": {
-        "linux": "less filename.txt",
-        "macos": "less filename.txt",
-        "windows": "more filename.txt"
-      },
-      "id": "rule_0038"
-    },
-    {
-      "intent": "find file by name",
-      "description": "Search for a file by name",
-      "examples": [
-        "find file",
-        "search for file",
-        "locate file",
-        "where is file"
-      ],
-      "commands": {
-        "linux": "find . -name 'filename.txt'",
-        "macos": "find . -name 'filename.txt'",
-        "windows": "dir filename.txt /s"
-      },
-      "id": "rule_0039"
-    },
-    {
-      "intent": "find files by extension",
-      "description": "Find all files with a specific extension",
-      "examples": [
-        "find all python files",
-        "find all txt files",
-        "search by extension"
-      ],
-      "commands": {
-        "linux": "find . -name '*.py'",
-        "macos": "find . -name '*.py'",
-        "windows": "dir *.py /s"
-      },
-      "id": "rule_0040"
-    },
-    {
-      "intent": "find files larger than size",
-      "description": "Find files larger than a specific size",
-      "examples": [
-        "find large files",
-        "files bigger than 100mb",
-        "find -size"
-      ],
-      "commands": {
-        "linux": "find . -size +100M",
-        "macos": "find . -size +100M",
-        "windows": "powershell Get-ChildItem -Recurse | Where-Object {$_.Length -gt 100MB}"
-      },
-      "id": "rule_0041"
-    },
-    {
-      "intent": "find files modified recently",
-      "description": "Find files modified in the last 7 days",
-      "examples": [
-        "find recent files",
-        "files changed this week",
-        "find -mtime"
-      ],
-      "commands": {
-        "linux": "find . -mtime -7",
-        "macos": "find . -mtime -7",
-        "windows": "powershell Get-ChildItem -Recurse | Where-Object {$_.LastWriteTime -gt (Get-Date).AddDays(-7)}"
-      },
-      "id": "rule_0042"
-    },
-    {
-      "intent": "find empty files",
-      "description": "Find all empty files in the current directory",
-      "examples": [
-        "find empty files",
-        "list empty files"
-      ],
-      "commands": {
-        "linux": "find . -empty",
-        "macos": "find . -empty",
-        "windows": "powershell Get-ChildItem -Recurse | Where-Object {$_.Length -eq 0}"
-      },
-      "id": "rule_0043"
-    },
-    {
-      "intent": "search text in file",
-      "description": "Search for a word or phrase inside a file",
-      "examples": [
-        "search inside file",
-        "grep text",
-        "find word in file",
-        "look for string in file"
-      ],
-      "commands": {
-        "linux": "grep 'search_term' filename.txt",
-        "macos": "grep 'search_term' filename.txt",
-        "windows": "findstr 'search_term' filename.txt"
-      },
-      "id": "rule_0044"
-    },
-    {
-      "intent": "search text recursively in directory",
-      "description": "Search for text in all files inside a folder",
-      "examples": [
-        "grep -r",
-        "search all files",
-        "find text in folder",
-        "recursive grep"
-      ],
-      "commands": {
-        "linux": "grep -r 'search_term' /path/to/folder/",
-        "macos": "grep -r 'search_term' /path/to/folder/",
-        "windows": "findstr /s /r 'search_term' *.*"
-      },
-      "id": "rule_0045"
-    },
-    {
-      "intent": "search text case insensitive",
-      "description": "Search for text ignoring uppercase or lowercase",
-      "examples": [
-        "grep -i",
-        "case insensitive search",
-        "find text ignore case"
-      ],
-      "commands": {
-        "linux": "grep -i 'search_term' filename.txt",
-        "macos": "grep -i 'search_term' filename.txt",
-        "windows": "findstr /i 'search_term' filename.txt"
-      },
-      "id": "rule_0046"
-    },
-    {
-      "intent": "make file executable",
-      "description": "Add execute permission to a file",
-      "examples": [
-        "make executable",
-        "chmod +x",
-        "give execute permission",
-        "run permission"
-      ],
-      "commands": {
-        "linux": "chmod +x filename.sh",
-        "macos": "chmod +x filename.sh",
-        "windows": "N/A - Windows uses file associations instead of execute bits"
-      },
-      "id": "rule_0047"
-    },
-    {
-      "intent": "change file permissions",
-      "description": "Set read/write/execute permissions on a file",
-      "examples": [
-        "chmod 755",
-        "set permissions",
-        "change permissions"
-      ],
-      "commands": {
-        "linux": "chmod 755 filename",
-        "macos": "chmod 755 filename",
-        "windows": "icacls filename /grant Users:F"
-      },
-      "id": "rule_0048"
-    },
-    {
-      "intent": "change file owner",
-      "description": "Change who owns a file",
-      "examples": [
-        "chown file",
-        "change owner",
-        "change file ownership"
-      ],
-      "commands": {
-        "linux": "chown user:group filename",
-        "macos": "chown user:group filename",
-        "windows": "takeown /f filename"
-      },
-      "id": "rule_0049"
-    },
-    {
-      "intent": "show file permissions",
-      "description": "View the permissions set on a file",
-      "examples": [
-        "view permissions",
-        "show permissions",
-        "check file permissions"
-      ],
-      "commands": {
-        "linux": "ls -l filename",
-        "macos": "ls -l filename",
-        "windows": "icacls filename"
-      },
-      "id": "rule_0050"
-    },
-    {
-      "intent": "check disk usage",
-      "description": "Show how much disk space is used and free",
-      "examples": [
-        "disk space",
-        "how much space left",
-        "drive usage",
-        "check disk",
-        "df -h"
-      ],
-      "commands": {
-        "linux": "df -h",
-        "macos": "df -h",
-        "windows": "wmic logicaldisk get size,freespace,caption"
-      },
-      "id": "rule_0051"
-    },
-    {
-      "intent": "check folder size",
-      "description": "Show the total size of a directory",
-      "examples": [
-        "folder size",
-        "how big is folder",
-        "du -sh",
-        "directory size"
-      ],
-      "commands": {
-        "linux": "du -sh folder_name/",
-        "macos": "du -sh folder_name/",
-        "windows": "powershell (Get-ChildItem folder_name -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB"
-      },
-      "id": "rule_0052"
-    },
-    {
-      "intent": "check size of all folders",
-      "description": "Show size of every subfolder in current directory",
-      "examples": [
-        "size of all folders",
-        "list folder sizes"
-      ],
-      "commands": {
-        "linux": "du -sh */",
-        "macos": "du -sh */",
-        "windows": "powershell Get-ChildItem | ForEach-Object { $_ | Add-Member -NotePropertyName Size -NotePropertyValue (Get-ChildItem $_.FullName -Recurse | Measure-Object -Property Length -Sum).Sum -PassThru } | Select-Object Name, Size"
-      },
-      "id": "rule_0053"
-    },
-    {
-      "intent": "check file size",
-      "description": "See how large a specific file is",
-      "examples": [
-        "how big is file",
-        "file size",
-        "check size of file"
-      ],
-      "commands": {
-        "linux": "ls -lh filename",
-        "macos": "ls -lh filename",
-        "windows": "powershell (Get-Item filename).Length / 1KB"
-      },
-      "id": "rule_0054"
-    },
-    {
-      "intent": "create symbolic link",
-      "description": "Create a shortcut that points to another file or folder",
-      "examples": [
-        "create symlink",
-        "symbolic link",
-        "create shortcut",
-        "soft link",
-        "ln -s"
-      ],
-      "commands": {
-        "linux": "ln -s /path/to/original /path/to/link",
-        "macos": "ln -s /path/to/original /path/to/link",
-        "windows": "mklink link_name target_path"
-      },
-      "id": "rule_0055"
-    },
-    {
-      "intent": "create symbolic link to directory",
-      "description": "Create a shortcut that points to a folder",
-      "examples": [
-        "symlink folder",
-        "link to directory",
-        "mklink /d"
-      ],
-      "commands": {
-        "linux": "ln -s /path/to/folder /path/to/link",
-        "macos": "ln -s /path/to/folder /path/to/link",
-        "windows": "mklink /d link_name target_folder"
-      },
-      "id": "rule_0056"
-    },
-    {
-      "intent": "compress folder to tar gz",
-      "description": "Compress a folder into a tar.gz archive",
-      "examples": [
-        "compress folder",
-        "tar.gz",
-        "archive folder",
-        "tar -czvf"
-      ],
-      "commands": {
-        "linux": "tar -czvf archive.tar.gz folder_name/",
-        "macos": "tar -czvf archive.tar.gz folder_name/",
-        "windows": "powershell Compress-Archive -Path folder_name -DestinationPath archive.zip"
-      },
-      "id": "rule_0057"
-    },
-    {
-      "intent": "extract tar gz",
-      "description": "Extract a .tar.gz archive",
-      "examples": [
-        "extract tar.gz",
-        "unzip tar",
-        "untar",
-        "tar -xzvf",
-        "decompress archive"
-      ],
-      "commands": {
-        "linux": "tar -xzvf archive.tar.gz",
-        "macos": "tar -xzvf archive.tar.gz",
-        "windows": "tar -xzvf archive.tar.gz"
-      },
-      "id": "rule_0058"
-    },
-    {
-      "intent": "create zip file",
-      "description": "Compress a folder into a zip archive",
-      "examples": [
-        "zip folder",
-        "create zip",
-        "compress to zip"
-      ],
-      "commands": {
-        "linux": "zip -r archive.zip folder_name/",
-        "macos": "zip -r archive.zip folder_name/",
-        "windows": "powershell Compress-Archive -Path folder_name -DestinationPath archive.zip"
-      },
-      "id": "rule_0059"
-    },
-    {
-      "intent": "extract zip file",
-      "description": "Extract a .zip archive",
-      "examples": [
-        "unzip file",
-        "extract zip",
-        "unzip archive"
-      ],
-      "commands": {
-        "linux": "unzip archive.zip",
-        "macos": "unzip archive.zip",
-        "windows": "powershell Expand-Archive -Path archive.zip -DestinationPath ."
-      },
-      "id": "rule_0060"
-    },
-    {
-      "intent": "list contents of zip",
-      "description": "View what is inside a zip file without extracting",
-      "examples": [
-        "view zip contents",
-        "list zip",
-        "peek inside zip"
-      ],
-      "commands": {
-        "linux": "unzip -l archive.zip",
-        "macos": "unzip -l archive.zip",
-        "windows": "powershell (Get-Archive archive.zip).Entries"
-      },
-      "id": "rule_0061"
-    },
-    {
-      "intent": "show file type",
-      "description": "Detect and display what kind of file something is",
-      "examples": [
-        "what type is file",
-        "file type",
-        "check file format"
-      ],
-      "commands": {
-        "linux": "file filename",
-        "macos": "file filename",
-        "windows": "powershell [System.IO.Path]::GetExtension('filename')"
-      },
-      "id": "rule_0062"
-    },
-    {
-      "intent": "count lines in file",
-      "description": "Count how many lines are in a file",
-      "examples": [
-        "count lines",
-        "how many lines",
-        "wc -l",
-        "line count"
-      ],
-      "commands": {
-        "linux": "wc -l filename.txt",
-        "macos": "wc -l filename.txt",
-        "windows": "find /c /v \"\" filename.txt"
-      },
-      "id": "rule_0063"
-    },
-    {
-      "intent": "count words in file",
-      "description": "Count the number of words in a file",
-      "examples": [
-        "count words",
-        "word count",
-        "wc -w"
-      ],
-      "commands": {
-        "linux": "wc -w filename.txt",
-        "macos": "wc -w filename.txt",
-        "windows": "powershell (Get-Content filename.txt | Measure-Object -Word).Words"
-      },
-      "id": "rule_0064"
-    },
-    {
-      "intent": "compare two files",
-      "description": "Show the differences between two files",
-      "examples": [
-        "diff files",
-        "compare files",
-        "what changed",
-        "file difference"
-      ],
-      "commands": {
-        "linux": "diff file1.txt file2.txt",
-        "macos": "diff file1.txt file2.txt",
-        "windows": "fc file1.txt file2.txt"
-      },
-      "id": "rule_0065"
-    },
-    {
-      "intent": "clear terminal",
-      "description": "Clear the terminal screen",
-      "examples": [
-        "clear screen",
-        "clean terminal",
-        "cls",
-        "clear"
-      ],
-      "commands": {
-        "linux": "clear",
-        "macos": "clear",
-        "windows": "cls"
-      },
-      "id": "rule_0066"
-    },
-    {
-      "intent": "show command history",
-      "description": "Show a list of previously run commands",
-      "examples": [
-        "command history",
-        "past commands",
-        "previous commands",
-        "history"
-      ],
-      "commands": {
-        "linux": "history",
-        "macos": "history",
-        "windows": "doskey /history"
-      },
-      "id": "rule_0067"
-    },
-    {
-      "intent": "show tree structure of directory",
-      "description": "Display folder contents as a visual tree",
-      "examples": [
-        "show folder tree",
-        "directory tree",
-        "tree command",
-        "visual folder structure"
-      ],
-      "commands": {
-        "linux": "tree",
-        "macos": "tree",
-        "windows": "tree"
-      },
-      "id": "rule_0068"
-    },
-    {
-      "intent": "show tree with depth limit",
-      "description": "Display directory tree up to 2 levels deep",
-      "examples": [
-        "tree 2 levels",
-        "tree -L 2",
-        "limited depth tree"
-      ],
-      "commands": {
-        "linux": "tree -L 2",
-        "macos": "tree -L 2",
-        "windows": "tree /f"
-      },
-      "id": "rule_0069"
-    },
-    {
-      "intent": "open file manager",
-      "description": "Open the graphical file explorer at current directory",
-      "examples": [
-        "open file explorer",
         "open finder",
-        "open folder gui",
-        "browse files"
+        "open file manager",
+        "launch file explorer",
+        "browse files visually",
+        "open folder browser"
       ],
+      "description": "Open the OS file manager in the current directory. Uses OS-native commands due to unreliable generic launching.",
       "commands": {
         "linux": "xdg-open .",
         "macos": "open .",
         "windows": "explorer ."
       },
-      "id": "rule_0070"
+      "risk_level": "medium",
+      "requires_confirmation": true,
+      "tags": [
+        "app",
+        "finder",
+        "file-manager",
+        "launch"
+      ]
     },
     {
-      "intent": "show environment variables",
-      "description": "List all environment variables",
+      "id": "app_open_calculator",
+      "intent": "open the system calculator",
       "examples": [
-        "show env variables",
-        "environment variables",
-        "env vars",
-        "printenv"
+        "open calculator",
+        "launch calculator",
+        "start calculator",
+        "open calc",
+        "show calculator"
       ],
+      "description": "Launch the system calculator application. Uses OS-native commands due to unreliable generic launching.",
       "commands": {
-        "linux": "printenv",
-        "macos": "printenv",
-        "windows": "set"
+        "linux": "gnome-calculator",
+        "macos": "open -a Calculator",
+        "windows": "calc"
       },
-      "id": "rule_0071"
-    },
-    {
-      "intent": "show specific environment variable",
-      "description": "Show the value of a specific environment variable",
-      "examples": [
-        "echo PATH",
-        "show PATH",
-        "get env variable",
-        "check HOME"
-      ],
-      "commands": {
-        "linux": "echo $VARIABLE_NAME",
-        "macos": "echo $VARIABLE_NAME",
-        "windows": "echo %VARIABLE_NAME%"
-      },
-      "id": "rule_0072"
-    },
-    {
-      "intent": "set environment variable",
-      "description": "Set a temporary environment variable for the current session",
-      "examples": [
-        "set env var",
-        "export variable",
-        "set variable",
-        "export PATH"
-      ],
-      "commands": {
-        "linux": "export VARIABLE_NAME=value",
-        "macos": "export VARIABLE_NAME=value",
-        "windows": "set VARIABLE_NAME=value"
-      },
-      "id": "rule_0073"
-    },
-    {
-      "intent": "test query",
-      "command": "echo test",
-      "description": "Generated by LLM",
-      "examples": [],
-      "id": "rule_0074"
-    },
-    {
-      "intent": "detect system",
-      "command": "uname -a",
-      "description": "Generated by LLM",
-      "examples": [],
-      "id": "rule_0075"
-    },
-    {
-      "intent": "detect system",
-      "command": "hostname",
-      "description": "Generated by LLM",
-      "examples": [],
-      "id": "rule_0076"
-    },
-    {
-      "intent": "create a javascript file named test",
-      "command": "touch test.js",
-      "description": "Generated by LLM",
-      "examples": [],
-      "id": "rule_0077"
-    },
-    {
-      "intent": "create a javascript file named test",
-      "command": "echo \"\" > test.js",
-      "description": "Generated by LLM",
-      "examples": [],
-      "id": "rule_0078"
-    },
-    {
-      "intent": "create a file named testjs",
-      "command": "touch testjs",
-      "description": "Generated by LLM",
-      "examples": [],
-      "id": "rule_0079"
-    },
-    {
-      "id": "10459d44-9f5a-4795-b407-f49526e3329a",
-      "intent": "list all files",
-      "command": "ls -a",
-      "description": "Generated by LLM",
-      "examples": [],
-      "text": "list all files",
-      "embedding": []
-    },
-    {
-      "id": "b423a442-0848-4389-8b74-f82477f85459",
-      "intent": "create a folder hello",
-      "command": "mkdir hello",
-      "description": "Generated by LLM",
-      "examples": [],
-      "text": "create a folder hello",
-      "embedding": []
-    },
-    {
-      "id": "b3605e59-fcd4-4355-970a-e9e08a7cb9f7",
-      "intent": "list and count files",
-      "command": "find . -maxdepth 1 -type f",
-      "description": "Generated by LLM",
-      "examples": [],
-      "text": "list and count files",
-      "embedding": []
-    },
-    {
-      "id": "4e8e68d3-32cf-4eb3-89da-ff754aa3a972",
-      "intent": "list and count files",
-      "command": "find . -maxdepth 1 -type f | wc -l",
-      "description": "Generated by LLM",
-      "examples": [],
-      "text": "list and count files",
-      "embedding": []
+      "risk_level": "medium",
+      "requires_confirmation": true,
+      "tags": [
+        "app",
+        "calculator",
+        "launch"
+      ]
     }
   ]
 }

@@ -823,5 +823,197 @@
     ],
     "source": "llm",
     "timestamp": "2026-04-12T23:51:52.544989"
+  },
+  {
+    "query": "ls",
+    "commands": [
+      "ls"
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-13T11:09:40.790945"
+  },
+  {
+    "query": "du -sh */",
+    "commands": [
+      "du -sh */"
+    ],
+    "source": "kb_semantic",
+    "timestamp": "2026-04-13T12:39:40.073956"
+  },
+  {
+    "query": "xdg-open .",
+    "commands": [
+      "xdg-open ."
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-13T12:40:33.460231"
+  },
+  {
+    "query": "node --version",
+    "commands": [
+      "node --version"
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-13T12:42:27.615261"
+  },
+  {
+    "query": "node --version",
+    "commands": [
+      "node --version"
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-13T12:43:36.776113"
+  },
+  {
+    "query": "xdg-open .",
+    "commands": [
+      "xdg-open ."
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-13T12:43:48.985720"
+  },
+  {
+    "query": "ls",
+    "commands": [
+      "ls"
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-13T16:22:38.191148"
+  },
+  {
+    "query": "node --version",
+    "commands": [
+      "node --version"
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-13T16:24:17.645833"
+  },
+  {
+    "query": "pip install pandas",
+    "commands": [
+      "pip install pandas"
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-13T16:25:55.194692"
+  },
+  {
+    "query": "xdg-open .",
+    "commands": [
+      "xdg-open ."
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-13T16:26:14.923273"
+  },
+  {
+    "query": "code",
+    "commands": [
+      "code"
+    ],
+    "source": "llm",
+    "timestamp": "2026-04-13T16:26:44.868684"
+  },
+  {
+    "query": "remove folder tmp_test_delete3",
+    "commands": [
+      "rm -rf \"./tmp_test_delete3\""
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-14T16:29:01.209732"
+  },
+  {
+    "query": "open -a Terminal",
+    "commands": [
+      "open -a Terminal"
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-14T16:32:13.333493"
+  },
+  {
+    "query": "open -a Terminal",
+    "commands": [
+      "open -a Terminal"
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-14T17:02:44.399928"
+  },
+  {
+    "query": "code",
+    "commands": [
+      "code"
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-14T17:10:09.404202"
+  },
+  {
+    "query": "open -a 'Google Chrome'",
+    "commands": [
+      "open -a 'Google Chrome'"
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-14T17:10:52.514485"
+  },
+  {
+    "query": "open -a Calculator",
+    "commands": [
+      "open -a Calculator"
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-14T17:14:30.293741"
+  },
+  {
+    "query": "pwd",
+    "commands": [
+      "pwd"
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-14T17:14:57.940654"
+  },
+  {
+    "query": "mkdir -p <folder>",
+    "commands": [
+      "mkdir -p <folder>"
+    ],
+    "source": "intent",
+    "timestamp": "2026-04-14T17:22:35.696049"
+  },
+  {
+    "query": "ls -la",
+    "commands": [
+      "ls -la"
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-14T17:25:59.454679"
+  },
+  {
+    "query": "git status",
+    "commands": [
+      "git status"
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-14T18:00:17.981481"
+  },
+  {
+    "query": "npm install",
+    "commands": [
+      "npm install"
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-14T18:05:59.141334"
+  },
+  {
+    "query": "ls -la",
+    "commands": [
+      "ls -la"
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-14T18:12:56.616456"
+  },
+  {
+    "query": "ls -la",
+    "commands": [
+      "ls -la"
+    ],
+    "source": "kb_fuzzy",
+    "timestamp": "2026-04-14T18:13:05.103641"
   }
 ]

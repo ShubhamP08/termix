@@ -66,6 +66,7 @@ _DISK_OVERWRITE_PATTERN = re.compile(r">\s*/dev/(?:sd[a-z]\d*|nvme\d+n\d+p?\d*|v
 
 # kill -9 -1 sends SIGKILL to almost all permitted processes.
 _KILL_ALL_PATTERN = re.compile(r"\bkill\b\s+-9\s+-1\b", re.IGNORECASE)
+_UNRESOLVED_PLACEHOLDER_PATTERN = re.compile(r"<[A-Za-z_]\w*>")
 
 
 def _is_allowlisted(command: str) -> bool:
@@ -75,6 +76,14 @@ def _is_allowlisted(command: str) -> bool:
     """
     first = command.split(" ", 1)[0].strip().lower()
     return first in _ALLOWLIST_PREFIXES
+
+
+def contains_unresolved_placeholders(command: str) -> bool:
+    """
+    Return True if a command still contains template placeholders like <folder>.
+    Such commands must never reach shell execution.
+    """
+    return bool(_UNRESOLVED_PLACEHOLDER_PATTERN.search(command or ""))
 
 
 def _is_recursive_delete_outside_safe_dirs(collapsed_cmd: str) -> bool:
@@ -117,6 +126,9 @@ def validate_commands(commands: list[str]) -> bool:
         original = (raw or "").strip()
         if not original:
             continue
+
+        if contains_unresolved_placeholders(original):
+            return False
 
         collapsed = re.sub(r"\s+", " ", original)
 

@@ -1,5 +1,11 @@
 """
-Semantic KB search (local cosine over stored embeddings) and embedding rebuild.
+Semantic KB search (local cosine similarity over stored embeddings) and embedding rebuild.
+
+This module is the **single** semantic search implementation.
+It uses embeddings stored inline in each KB rule's ``embedding`` field
+and compares them to a query embedding using cosine similarity.
+
+No vector database is used — everything is JSON-based and local.
 """
 
 from __future__ import annotations
@@ -16,20 +22,34 @@ from utils.similarity import cosine_similarity
 
 logger = logging.getLogger(__name__)
 
-_SEMANTIC_THRESHOLD = 0.75
+# ---------------------------------------------------------------------------
+# Thresholds
+# ---------------------------------------------------------------------------
+
+# Semantic threshold for search.
+# TF embeddings are sparse, so 0.60 is a reasonable cutoff.
+# Gemini embeddings are denser — this threshold works for both.
+SEMANTIC_THRESHOLD = 0.60
+
 _auto_rebuild_done = False
 
 
-def _kb_path(path: Optional[str] = None) -> str:
-    if path:
-        return path
-    from knowledge.retriever import _default_kb_path
-
-    return _default_kb_path()
-
+# ---------------------------------------------------------------------------
+# Text construction for embeddings
+# ---------------------------------------------------------------------------
 
 def build_rule_text(rule: Dict[str, Any]) -> str:
-    """Natural-language text used for embedding and fuzzy/semantic routing."""
+    """
+    Build natural-language text used for embedding a KB rule.
+
+    Combines intent, description, and examples into a single string.
+    If the rule already has a ``text`` field, prefer that.
+    """
+    # If rule already has a curated text field, use it directly
+    text = rule.get("text")
+    if isinstance(text, str) and text.strip():
+        return text.strip()
+
     intent = (rule.get("intent") or "").strip()
     desc = (rule.get("description") or "").strip()
     parts: List[str] = []
@@ -42,20 +62,23 @@ def build_rule_text(rule: Dict[str, Any]) -> str:
         ex_strs = [str(e).strip() for e in examples if isinstance(e, str) and str(e).strip()]
         if ex_strs:
             parts.append("Examples: " + "; ".join(ex_strs))
-    text = rule.get("text")
-    if isinstance(text, str) and text.strip():
-        return text.strip()
     return ". ".join(parts) if parts else intent or desc or ""
 
 
+# ---------------------------------------------------------------------------
+# Embedding rebuild
+# ---------------------------------------------------------------------------
+
 def rebuild_embeddings(path: Optional[str] = None) -> None:
     """
-    For each KB rule: ensure ``id``, ``text``, ``command`` (linux template or legacy), and ``embedding``.
+    For each KB rule: ensure ``id``, ``text``, ``command`` (canonical), and ``embedding``.
+
     Writes the updated KB to disk and clears the in-memory KB cache.
+    Embeddings are stored inline in the rule — no separate embeddings file.
     """
     from knowledge.retriever import canonical_kb_command, clear_knowledge_cache
 
-    kb_path = _kb_path(path)
+    kb_path = path or _default_kb_path()
     with open(kb_path, "r", encoding="utf-8") as f:
         kb = json.load(f)
 
@@ -63,17 +86,22 @@ def rebuild_embeddings(path: Optional[str] = None) -> None:
     for rule in rules:
         if not isinstance(rule, dict):
             continue
+
+        # Ensure every rule has an ID
         rid = rule.get("id")
         if not isinstance(rid, str) or not rid.strip():
             rule["id"] = str(uuid.uuid4())
 
+        # Build/refresh the text field
         text = build_rule_text(rule)
         rule["text"] = text
 
+        # Store canonical command for quick lookup
         cmd = canonical_kb_command(rule)  # type: ignore[arg-type]
         if cmd:
             rule["command"] = cmd
 
+        # Generate embedding
         if not text:
             rule["embedding"] = []
             continue
@@ -93,8 +121,13 @@ def rebuild_embeddings(path: Optional[str] = None) -> None:
     logger.info("rebuild_embeddings: wrote %d rules to %s", len(rules), kb_path)
 
 
+# ---------------------------------------------------------------------------
+# Semantic search
+# ---------------------------------------------------------------------------
+
 @dataclass(frozen=True)
 class SemanticHit:
+    """Result of a successful semantic search."""
     command: str
     similarity: float
     rule: Dict[str, Any]
@@ -104,10 +137,13 @@ def semantic_search(
     user_input: str,
     *,
     kb: Optional[Dict[str, Any]] = None,
-    threshold: float = _SEMANTIC_THRESHOLD,
+    threshold: float = SEMANTIC_THRESHOLD,
 ) -> Optional[SemanticHit]:
     """
-    Embed ``user_input``, cosine-compare to each rule's ``embedding``, return best above threshold.
+    Embed ``user_input``, cosine-compare to each rule's inline ``embedding``,
+    and return the best match above *threshold*.
+
+    Returns None if no rule exceeds the threshold.
     """
     from knowledge.retriever import _pick_os_command, load_knowledge
 
@@ -117,12 +153,17 @@ def semantic_search(
     if not q:
         return None
 
+    # Check that at least one rule has an embedding
     if not any(
-        isinstance(r, dict) and isinstance(r.get("embedding"), list) and len(r["embedding"]) > 0
+        isinstance(r, dict)
+        and isinstance(r.get("embedding"), list)
+        and len(r["embedding"]) > 0
         for r in rules
     ):
+        logger.debug("semantic_search: no rules have embeddings, skipping")
         return None
 
+    # Embed the query
     try:
         query_vec = get_embedding(q, task="query")
     except Exception:
@@ -132,6 +173,7 @@ def semantic_search(
     if not query_vec:
         return None
 
+    # Find best match
     best_sim = -1.0
     best_rule: Optional[Dict[str, Any]] = None
 
@@ -146,7 +188,11 @@ def semantic_search(
             best_sim = sim
             best_rule = rule
 
-    if best_rule is None or best_sim <= threshold:
+    if best_rule is None or best_sim < threshold:
+        logger.debug(
+            "semantic_search: best_sim=%.4f < threshold=%.2f, no match",
+            best_sim, threshold,
+        )
         return None
 
     cmd = _pick_os_command(best_rule)  # type: ignore[arg-type]
@@ -155,6 +201,10 @@ def semantic_search(
 
     return SemanticHit(command=cmd, similarity=best_sim, rule=best_rule)
 
+
+# ---------------------------------------------------------------------------
+# Auto-rebuild helper
+# ---------------------------------------------------------------------------
 
 def maybe_auto_rebuild_embeddings(path: Optional[str] = None) -> None:
     """
@@ -174,3 +224,11 @@ def maybe_auto_rebuild_embeddings(path: Optional[str] = None) -> None:
         rebuild_embeddings(path=path)
     except Exception:
         logger.exception("auto rebuild_embeddings failed")
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+def _default_kb_path() -> str:
+    return os.path.join(os.path.dirname(__file__), "knowledge_base.json")

@@ -3,20 +3,28 @@ CLI entrypoint for CLP1.
 
 Responsibilities:
 - Parse CLI args
-- Handle file-create fast path (deterministic, no graph needed)
 - Run the graph in two phases:
     Phase 1: resolve + validate  (approved=False → graph stops before executor)
     Phase 2: confirm with user, then re-invoke with approved=True → graph executes
 - Display results
+
+Note: File-create and other deterministic intents are now handled inside the
+unified retrieval pipeline (knowledge.retriever) — no special fast-path here.
 """
 
 from __future__ import annotations
 
 from typing import Any, Dict
+import os
+import sys
 import typer
 
+# Ensure sibling packages (agent/, knowledge/, tools/, etc.) are importable
+_BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if _BASE_DIR not in sys.path:
+    sys.path.insert(0, _BASE_DIR)
+
 from agent.graph import graph
-from utils.file_ops import build_filename, generate_file_commands, is_create_file_intent
 from security.validator import validate_commands
 from execution.executor import execute_commands
 from utils.history_logger import log_history
@@ -26,11 +34,12 @@ app = typer.Typer(add_completion=False)
 
 def _format_source(source: str) -> str:
     return {
-        "kb_fuzzy":   "Knowledge Base (Fuzzy Match)",
+        "intent":      "Deterministic (Intent Handler)",
+        "kb_fuzzy":    "Knowledge Base (Fuzzy Match)",
         "kb_semantic": "Knowledge Base (Semantic)",
-        "llm":        "LLM (Gemini)",
-        "file_ops":   "File Operations",
-        "gemini":     "LLM (Gemini)",
+        "llm":         "LLM (Gemini)",
+        "file_ops":    "File Operations",
+        "gemini":      "LLM (Gemini)",
     }.get(source, source or "Unknown")
 
 
@@ -48,22 +57,12 @@ def run(
 ) -> None:
     """Generate commands from an instruction, confirm, then execute."""
 
-    from utils.kb import ensure_embeddings_exist
-    ensure_embeddings_exist()
-
-    # ------------------------------------------------------------------ #
-    # Fast path: deterministic file-create (no graph, no LLM)             #
-    # ------------------------------------------------------------------ #
-    if is_create_file_intent(instruction):
-        filename = build_filename(instruction)
-        commands = generate_file_commands(filename)
-
-        if not validate_commands(commands):
-            typer.echo("Blocked: command(s) failed safety validation.")
-            raise typer.Exit(code=2)
-
-        _show_and_execute(instruction, commands, source="file_ops", yes=yes)
-        return
+    # Ensure embeddings are ready (non-fatal if it fails)
+    try:
+        from knowledge.semantic import maybe_auto_rebuild_embeddings
+        maybe_auto_rebuild_embeddings()
+    except Exception:
+        pass
 
     # ------------------------------------------------------------------ #
     # Phase 1: resolve + validate (no execution yet)                       #
@@ -82,6 +81,7 @@ def run(
     commands = list(resolved.get("commands") or [])
     source = resolved.get("source") or ""
     error = resolved.get("error") or ""
+    score = float(resolved.get("score") or 0.0)
 
     if error:
         typer.echo(f"Blocked: {error}")
@@ -97,9 +97,14 @@ def run(
     typer.echo("Generated commands:")
     for i, cmd in enumerate(commands, start=1):
         typer.echo(f"  {i}. {cmd}")
-    typer.echo(f"\n[Source: {_format_source(source)}]")
+    typer.echo(f"\n[Source: {_format_source(source)}]  [Score: {score:.2f}]")
 
-    approved = yes or typer.confirm("\nExecute these command(s)?", default=False)
+    requires_confirmation = resolved.get("requires_confirmation", True)
+    if yes or not requires_confirmation:
+        approved = True
+    else:
+        approved = typer.confirm("\nExecute these command(s)?", default=False)
+
     if not approved:
         typer.echo("Cancelled.")
         raise typer.Exit(code=0)
@@ -122,37 +127,6 @@ def run(
         err  = (item.get("error") or "").rstrip()
 
         typer.echo(f"\n$ {cmd}  (exit {code})")
-        if out:
-            typer.echo(out)
-        if err:
-            typer.echo(err)
-
-
-def _show_and_execute(
-    instruction: str,
-    commands: list,
-    source: str,
-    yes: bool,
-) -> None:
-    """Shared display+execute helper for the file-ops fast path."""
-    typer.echo("Generated commands:")
-    for i, cmd in enumerate(commands, start=1):
-        typer.echo(f"  {i}. {cmd}")
-    typer.echo(f"\n[Source: {_format_source(source)}]")
-
-    approved = yes or typer.confirm("\nExecute these command(s)?", default=False)
-    if not approved:
-        typer.echo("Cancelled.")
-        raise typer.Exit(code=0)
-
-    results = execute_commands(commands)
-    log_history(instruction, commands, source)
-
-    for item in results:
-        code = 0 if item["success"] else 1
-        out  = (item.get("output") or "").rstrip()
-        err  = (item.get("error") or "").rstrip()
-        typer.echo(f"\n$ {item['command']}  (exit {code})")
         if out:
             typer.echo(out)
         if err:
@@ -204,7 +178,7 @@ def knowledge() -> None:
 
 @app.command("rebuild-embeddings")
 def rebuild_embeddings_cmd() -> None:
-    """Regenerate Gemini embeddings for every KB rule."""
+    """Regenerate embeddings for every KB rule."""
     from knowledge.semantic import rebuild_embeddings
     rebuild_embeddings()
     typer.echo("Embeddings rebuilt and knowledge_base.json updated.")

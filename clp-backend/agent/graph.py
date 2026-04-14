@@ -1,10 +1,13 @@
 """
 LangGraph pipeline for CLP1.
 
-Flow:
-  normalize → planner → knowledge_lookup → [llm if needed] → validator → executor → learning → END
+Simplified flow (LLM fallback is now inside the retriever):
 
-All logic lives in the graph. cli/main.py only handles UI (display + confirm).
+  normalize → planner → knowledge → validator → [executor] → [learning] → END
+
+All retrieval logic (fuzzy → semantic → LLM) lives in the unified
+``knowledge.retriever.retrieve()`` pipeline.  The graph only handles
+flow control: normalise, plan, retrieve, validate, execute, learn.
 """
 
 from __future__ import annotations
@@ -16,18 +19,10 @@ from agent.nodes import (
     normalize_node,
     planner_node,
     knowledge_lookup_node,
-    llm_generation_node,
     validator_node,
     executor_node,
     learning_node,
 )
-
-
-def _route_after_knowledge(state: AgentState) -> str:
-    """Go to LLM if KB found nothing, otherwise validate directly."""
-    if state.get("commands"):
-        return "validator"
-    return "llm"
 
 
 def _route_after_validator(state: AgentState) -> str:
@@ -43,7 +38,6 @@ def build_graph() -> StateGraph:
     builder.add_node("normalize", normalize_node)
     builder.add_node("planner", planner_node)
     builder.add_node("knowledge", knowledge_lookup_node)
-    builder.add_node("llm", llm_generation_node)
     builder.add_node("validator", validator_node)
     builder.add_node("executor", executor_node)
     builder.add_node("learning", learning_node)
@@ -52,13 +46,9 @@ def build_graph() -> StateGraph:
     builder.add_edge("normalize", "planner")
     builder.add_edge("planner", "knowledge")
 
-    builder.add_conditional_edges(
-        "knowledge",
-        _route_after_knowledge,
-        {"validator": "validator", "llm": "llm"},
-    )
-
-    builder.add_edge("llm", "validator")
+    # Retriever now handles LLM fallback internally, so knowledge
+    # always produces commands (or empty).  Go straight to validator.
+    builder.add_edge("knowledge", "validator")
 
     builder.add_conditional_edges(
         "validator",

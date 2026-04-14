@@ -209,38 +209,65 @@ export default function TerminalUI({ visible }) {
       const sid = crypto.randomUUID();
       setFlowSessionId(sid);
 
-      // Call /resolve
-      const r = await resolveQuery(query);
+      // Call /resolve with session_id
+      const r = await resolveQuery(query, sid);
 
+      // Handle error state
       if (r.error) {
         appendLines(setOutput, 'error', [`Blocked: ${r.error}`]);
         resetInteractiveFlow();
         return;
       }
 
-      if (!r.commands || r.commands.length === 0) {
-        appendLines(setOutput, 'error', ['No commands generated.']);
+      // Handle missing placeholders — prompt user for more input
+      if (r.missing_placeholders && r.missing_placeholders.length > 0) {
+        const placeholderLines = [
+          'Need more information:',
+          ...r.missing_placeholders.map(p => `  • ${p}`),
+          '',
+          'Please provide the missing value(s):',
+        ];
+        appendLines(setOutput, 'info', placeholderLines);
+        setFlowStep('idle');  // Back to idle for user input
+        return;
+      }
+
+      // Handle tool_output — Python-native tool executed successfully
+      if (r.tool_output && r.tool_output.trim()) {
+        const lines = [
+          `[Source: ${r.source_display}]`,
+          r.tool_output.trimEnd(),
+        ];
+        appendLines(setOutput, 'success', lines);
         resetInteractiveFlow();
         return;
       }
 
-      // Store flow state
-      setFlowCommands(r.commands);
-      setFlowSource(r.source);
-      setFlowSourceDisplay(r.source_display);
-      setFlowStep('confirm');
+      // Handle commands — show confirmation
+      if (r.commands && r.commands.length > 0) {
+        // Store flow state
+        setFlowCommands(r.commands);
+        setFlowSource(r.source);
+        setFlowSourceDisplay(r.source_display);
+        setFlowStep('confirm');
 
-      // ── Display generated commands with confirmation ──
-      const outputLines = ['Generated commands:'];
-      r.commands.forEach((cmd, i) => {
-        outputLines.push(`  ${i + 1}. ${cmd}`);
-      });
-      outputLines.push('');
-      outputLines.push(`[Source: ${r.source_display}]`);
-      outputLines.push('');
-      outputLines.push("Execute these command(s)? [y/N]:");
+        // ── Display generated commands with confirmation ──
+        const outputLines = ['Generated commands:'];
+        r.commands.forEach((cmd, i) => {
+          outputLines.push(`  ${i + 1}. ${cmd}`);
+        });
+        outputLines.push('');
+        outputLines.push(`[Source: ${r.source_display}]`);
+        outputLines.push('');
+        outputLines.push("Execute these command(s)? [y/N]:");
 
-      appendLines(setOutput, 'info', outputLines);
+        appendLines(setOutput, 'info', outputLines);
+        return;
+      }
+
+      // No commands, no output, no missing placeholders, no error
+      appendLines(setOutput, 'error', ['No commands generated.']);
+      resetInteractiveFlow();
 
     } catch (err) {
       resetInteractiveFlow();

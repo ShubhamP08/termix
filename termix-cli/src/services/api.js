@@ -35,13 +35,13 @@ async function parseJsonResponse(res) {
 
 /**
  * POST /resolve — resolve a natural language query into commands.
- * Returns: { commands: string[], source: string, source_display: string, intent: string, error?: string }
+ * Returns: { commands: string[], source: string, source_display: string, intent: string, error?: string, missing_placeholders?: string[], tool_output?: string }
  */
-export async function resolveQuery(query) {
+export async function resolveQuery(query, session_id = '') {
   const res = await fetch(`${baseUrl()}/resolve`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ query }),
+    body: JSON.stringify({ query, session_id }),
   });
   return parseJsonResponse(res);
 }
